@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT Clinical Suite: Outpatient Ortho & Home Health HEP + AI Co-Pilot</title>
+    <style>
+        :root {
+            --navy: #162e4d;
+            --navy-dark: #0f2138;
+            --blue: #2563eb;
+            --blue-light: #eff6ff;
+            --teal: #0d9488;
+            --teal-light: #f0fdfa;
+            --amber-bg: #fffbeb;
+            --amber-border: #f59e0b;
+            --bg-main: #f1f5f9;
+            --card-bg: #f8fafc;
+            --border: #cbd5e1;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        header {
+            background: linear-gradient(90deg, var(--navy-dark), var(--navy));
+            color: white;
+            padding: 0.6rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 20;
+        }
+
+        .brand-area { display: flex; align-items: center; gap: 1.15rem; }
+        .brand-title { font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+        .brand-badge { font-size: 0.68rem; background: rgba(255,255,255,0.15); padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600; }
+
+        .nav-tabs { display: flex; gap: 0.3rem; background: rgba(0,0,0,0.25); padding: 0.22rem; border-radius: 6px; }
+        .nav-tab {
+            padding: 0.4rem 0.85rem; border: none; background: transparent; color: #cbd5e1;
+            font-weight: 600; font-size: 0.8rem; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+        }
+        .nav-tab.active { background: white; color: var(--navy-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+        .top-actions { display: flex; gap: 0.4rem; align-items: center; }
+
+        .btn {
+            padding: 0.42rem 0.75rem; border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 0.3rem; transition: all 0.15s;
+        }
+        .btn:hover { filter: brightness(1.06); }
+        .btn-white { background: white; color: var(--navy-dark); }
+        .btn-blue { background: var(--blue); color: white; }
+        .btn-teal { background: var(--teal); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-outline { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.35); }
+        .btn-danger { background: #fee2e2; color: var(--danger); }
+        .btn-sm { padding: 0.24rem 0.5rem; font-size: 0.72rem; }
+
+        .app-body { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .view-panel { display: none; flex: 1; overflow: hidden; }
+        .view-panel.active { display: flex; }
+
+        /* Left Sidebar Library */
+        .sidebar {
+            width: 350px; background: white; border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+        }
+        .sidebar-controls {
+            padding: 0.8rem; border-bottom: 1px solid var(--border); background: var(--card-bg);
+            display: flex; flex-direction: column; gap: 0.45rem;
+        }
+        .sidebar-controls input, .sidebar-controls select {
+            width: 100%; padding: 0.48rem 0.6rem; border: 1px solid var(--border); border-radius: 5px; font-size: 0.83rem;
+        }
+        .library-list { flex: 1; overflow-y: auto; padding: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .lib-card { border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem; background: white; transition: all 0.15s; }
+        .lib-card:hover { border-color: var(--blue); box-shadow: 0 2px 6px rgba(37,99,235,0.08); }
+        .lib-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem; margin-bottom: 0.22rem; }
+        .lib-card h4 { font-size: 0.85rem; color: var(--navy); line-height: 1.25; }
+        .tag { font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.42rem; border-radius: 4px; display: inline-block; margin-bottom: 0.25rem; }
+        .tag-ortho { background: var(--blue-light); color: var(--blue); }
+        .tag-hh { background: var(--teal-light); color: var(--teal); }
+        .lib-card p { font-size: 0.75rem; color: var(--text-muted); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .sidebar-footer { padding: 0.7rem; border-top: 1px solid var(--border); background: var(--card-bg); display: flex; flex-direction: column; gap: 0.4rem; }
+
+        /* Builder Main */
+        .builder-main { flex: 1; overflow-y: auto; padding: 1.25rem; }
+        .sheet-toolbar {
+            max-width: 780px; margin: 0 auto 0.85rem auto; background: white; border: 1px solid var(--border);
+            border-radius: 6px; padding: 0.6rem 0.9rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem;
+        }
+        .preset-modes { display: flex; gap: 0.35rem; align-items: center; }
+        .toggles-row { display: flex; gap: 0.75rem; font-size: 0.78rem; font-weight: 600; align-items: center; flex-wrap: wrap; }
+        .toggles-row label { display: flex; align-items: center; gap: 0.28rem; cursor: pointer; }
+
+        /* Portrait-Optimized Sheet (Strictly Bounded to 780px / 100% Print Width) */
+        .hep-sheet {
+            background: white;
+            width: 100%;
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 1.75rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+
+        .sheet-banner {
+            background-color: var(--navy); color: white; text-align: center; padding: 1.1rem 1rem;
+            border-radius: 6px; margin-bottom: 1rem; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .sheet-banner input.banner-title {
+            background: transparent; border: none; color: white; font-size: 1.45rem; font-weight: 800;
+            text-align: center; width: 100%; margin-bottom: 0.15rem;
+        }
+        .sheet-banner input.banner-sub {
+            background: transparent; border: none; color: #cbd5e1; font-size: 0.88rem;
+            font-style: italic; text-align: center; width: 100%;
+        }
+
+        /* Bounded 3-Column Patient Meta Bar */
+        .patient-meta {
+            display: grid;
+            grid-template-columns: 1.1fr 0.85fr 1.25fr;
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.65rem;
+            border-bottom: 1px solid var(--border);
+            width: 100%;
+        }
+        .meta-box {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.82rem;
+            min-width: 0;
+        }
+        .meta-box strong { color: var(--navy); white-space: nowrap; flex-shrink: 0; }
+        .meta-box input {
+            border: 1px solid var(--border);
+            padding: 0.28rem 0.45rem;
+            border-radius: 4px;
+            width: 100%;
+            min-width: 0;
+            font-size: 0.82rem;
+            color: var(--text-dark);
+        }
+
+        /* 2-Column Intro Educational Cards */
+        .edu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-bottom: 1.15rem;
+            width: 100%;
+        }
+        .edu-card {
+            background: var(--card-bg);
+            padding: 0.8rem 0.95rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            min-width: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .edu-card input {
+            font-size: 0.95rem; font-weight: 700; color: var(--navy-dark);
+            border: none; background: transparent; width: 100%; margin-bottom: 0.3rem;
+        }
+        .edu-card textarea {
+            width: 100%; border: none; background: transparent; font-size: 0.81rem;
+            line-height: 1.42; color: var(--text-dark); resize: none; overflow: hidden;
+        }
+
+        .section-heading {
+            color: var(--blue); font-size: 0.96rem; font-weight: 700;
+            border-bottom: 2px solid #e2e8f0; padding-bottom: 0.3rem; margin-bottom: 0.75rem;
+        }
+
+        /* Exercise Cards - Strictly Contained */
+        .hep-list { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.15rem; width: 100%; }
+        .hep-item {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            background: white;
+            width: 100%;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .hep-item-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 0.5rem; margin-bottom: 0.45rem; width: 100%;
+        }
+        .hep-item-header input {
+            font-size: 0.98rem; font-weight: 700; color: var(--navy);
+            border: 1px solid transparent; padding: 0.12rem 0.25rem; flex: 1; min-width: 0;
+        }
+        .hep-item-header input:focus { border-color: var(--border); }
+
+        .why-callout {
+            background: var(--blue-light); border-left: 3px solid var(--blue);
+            padding: 0.45rem 0.7rem; margin-bottom: 0.55rem; border-radius: 0 4px 4px 0;
+            width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .why-callout label {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            color: var(--blue); display: block; margin-bottom: 0.1rem;
+        }
+        .why-callout textarea {
+            width: 100%; border: none; background: transparent; font-size: 0.82rem;
+            line-height: 1.38; color: var(--text-dark); resize: none; overflow: hidden; display: block;
+        }
+
+        /* FIXED 5-Column Parameter Grid - Never Overflows Card Width */
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.45rem;
+            background: var(--card-bg);
+            padding: 0.45rem 0.55rem;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 0.55rem;
+            width: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .param-cell {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            width: 100%;
+        }
+        .param-cell label {
+            font-size: 0.64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .param-cell input {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid var(--border);
+            background: white;
+            padding: 0.22rem 0.35rem;
+            border-radius: 3px;
+            font-size: 0.79rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-top: 0.12rem;
+        }
+
+        .how-box { width: 100%; }
+        .how-box label {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            color: var(--text-muted); display: block; margin-bottom: 0.18rem;
+        }
+        .how-box textarea {
+            width: 100%; border: 1px solid var(--border); border-radius: 4px;
+            padding: 0.42rem 0.55rem; font-size: 0.82rem; line-height: 1.42;
+            color: var(--text-dark); resize: none; overflow: hidden; display: block;
+        }
+
+        .why-works-box {
+            background: var(--amber-bg); border-left: 4px solid var(--amber-border);
+            padding: 0.65rem 0.9rem; border-radius: 4px; margin-bottom: 1.15rem;
+            width: 100%; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .why-works-box textarea {
+            width: 100%; border: none; background: transparent; font-size: 0.82rem;
+            line-height: 1.4; color: var(--text-dark); resize: none; overflow: hidden; display: block;
+        }
+
+        .preset-footer { page-break-inside: avoid; break-inside: avoid; width: 100%; }
+        .preset-banner {
+            background: var(--navy-dark); color: white; text-align: center;
+            padding: 0.6rem; border-radius: 5px; margin: 0.45rem 0;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .preset-banner input {
+            background: transparent; border: none; color: white; font-weight: 700;
+            font-size: 0.84rem; letter-spacing: 0.5px; text-align: center; width: 100%; text-transform: uppercase;
+        }
+        .preset-sub { text-align: center; width: 100%; border: none; font-size: 0.81rem; font-style: italic; color: var(--text-dark); }
+        .empty-state { text-align: center; padding: 2rem; border: 2px dashed var(--border); border-radius: 6px; color: var(--text-muted); }
+
+        /* Resource Hub */
+        .resource-hub { flex: 1; overflow-y: auto; padding: 1.5rem 2rem; }
+        .hub-container { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+        .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.25rem; }
+        .hub-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 0.75rem; }
+        .hub-card h3 { font-size: 1rem; color: var(--navy); border-bottom: 2px solid var(--blue-light); padding-bottom: 0.4rem; }
+        .calc-row { display: flex; gap: 0.6rem; align-items: center; font-size: 0.84rem; }
+        .calc-row label { flex: 1; font-weight: 600; }
+        .calc-row input, .calc-row select { flex: 1; padding: 0.4rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.84rem; }
+        .calc-output { background: var(--card-bg); border-left: 4px solid var(--blue); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.83rem; line-height: 1.45; }
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .ref-table th, .ref-table td { border: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; }
+        .ref-table th { background: var(--card-bg); color: var(--navy); font-weight: 700; }
+
+        /* AI Co-Pilot Drawer */
+        .ai-drawer {
+            width: 430px; background: white; border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; box-shadow: -4px 0 18px rgba(0,0,0,0.08);
+            z-index: 15; transition: margin-right 0.25s ease;
+        }
+        .ai-drawer.collapsed { margin-right: -430px; }
+        .ai-drawer-header { background: var(--navy); color: white; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .ai-mode-tabs { display: grid; grid-template-columns: 1fr 1fr; background: #e2e8f0; padding: 0.25rem; gap: 0.25rem; }
+        .ai-mode-btn { padding: 0.48rem; border: none; border-radius: 4px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: var(--text-muted); }
+        .ai-mode-btn.active { background: white; color: var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        .ai-pane { display: none; flex: 1; flex-direction: column; overflow: hidden; padding: 0.85rem; gap: 0.65rem; }
+        .ai-pane.active { display: flex; }
+
+        .chat-history { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; background: var(--card-bg); display: flex; flex-direction: column; gap: 0.65rem; }
+        .chat-bubble { padding: 0.65rem 0.85rem; border-radius: 8px; font-size: 0.82rem; line-height: 1.48; max-width: 94%; white-space: pre-wrap; }
+        .chat-user { background: var(--blue); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-ai { background: white; color: var(--text-dark); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 2px; }
+
+        .quick-prompts { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+        .chip { font-size: 0.7rem; background: var(--blue-light); color: var(--blue); border: 1px solid #bfdbfe; padding: 0.2rem 0.5rem; border-radius: 99px; cursor: pointer; font-weight: 600; }
+        .chip:hover { background: #dbeafe; }
+
+        .ai-settings-bar { padding: 0.65rem 0.85rem; border-top: 1px solid var(--border); background: #f8fafc; display: flex; flex-direction: column; gap: 0.35rem; }
+
+        #toast {
+            position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
+            background: var(--navy-dark); color: white; padding: 0.6rem 1.2rem; border-radius: 6px;
+            font-size: 0.84rem; font-weight: 600; display: none; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* ================= PORTRAIT PRINT PERFECTION ================= */
+        @page {
+            size: letter portrait;
+            margin: 0.4in;
+        }
+
+        @media print {
+            html, body {
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: white !important;
+            }
+            header, .sidebar, .sheet-toolbar, .ai-drawer, .resource-hub, .no-print {
+                display: none !important;
+            }
+            .app-body, .view-panel.active, .builder-main {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+            .hep-sheet {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+            .patient-meta input,
+            .hep-item-header input,
+            .edu-card input,
+            .edu-card textarea,
+            .why-callout textarea,
+            .how-box textarea,
+            .why-works-box textarea {
+                border: none !important;
+                padding: 0 !important;
+                background: transparent !important;
+                resize: none !important;
+                overflow: visible !important;
+            }
+            .param-cell input {
+                border: none !important;
+                background: transparent !important;
+                padding: 0.1rem 0 !important;
+                font-weight: 700 !important;
+            }
+            .params-grid {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                padding: 0.35rem 0.5rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-area">
+            <div class="brand-title">
+                ⚡ PT Clinical & HEP Suite
+                <span class="brand-badge">Outpatient Ortho + Home Health</span>
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" id="tabBtnHep" onclick="switchMainView('hep')">📋 HEP & Foundation Builder</button>
+                <button class="nav-tab" id="tabBtnHub" onclick="switchMainView('hub')">🧭 Functional & Ortho Resource Hub</button>
+            </div>
+        </div>
+
+        <div class="top-actions">
+            <button class="btn btn-outline" onclick="exportCloudFile()">☁️ Save to Cloud</button>
+            <button class="btn btn-outline" onclick="document.getElementById('cloudFileInput').click()">📂 Load from Cloud</button>
+            <input type="file" id="cloudFileInput" style="display:none" accept=".json" onchange="importCloudFile(event)">
+            <button class="btn btn-white" onclick="prepareAndPrint()">🖨️ Print / Save PDF</button>
+            <button class="btn btn-teal" onclick="toggleAiDrawer()">🧠 AI Co-Pilot</button>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <!-- ==================== VIEW 1: HEP BUILDER ==================== -->
+        <div class="view-panel active" id="viewHep">
+            <aside class="sidebar">
+                <div class="sidebar-controls">
+                    <input type="text" id="searchInput" placeholder="Search exercises, resets, HH drills..." onkeyup="filterLibrary()">
+                    <select id="categorySelect" onchange="filterLibrary()">
+                        <option value="All">All Clinical Categories (Ortho + Home Health)</option>
+                        <option value="Neurological Reset">Neurological Resets (Feed-Forward)</option>
+                        <option value="Deep Core & Lumbar">Deep Core & Lumbar Foundation</option>
+                        <option value="Cervical & Shoulder">Cervical & Shoulder</option>
+                        <option value="Hip, Knee & Ankle">Hip, Knee & Ankle (Lower Extremity)</option>
+                        <option value="Home Health & Fall Prevention">Home Health, Transfers & Balance</option>
+                    </select>
+                </div>
+
+                <div class="library-list" id="libraryList"></div>
+
+                <div class="sidebar-footer">
+                    <button class="btn btn-success" style="width:100%; justify-content:center;" onclick="addBlankExercise()">+ Add Blank Custom Exercise</button>
+                    <button class="btn btn-sm" style="background:#e2e8f0; color:var(--text-dark); justify-content:center;" onclick="resetDefaultLibrary()">Reset Library to Factory Defaults</button>
+                </div>
+            </aside>
+
+            <main class="builder-main">
+                <div class="sheet-toolbar no-print">
+                    <div class="preset-modes">
+                        <span style="font-size:0.76rem; font-weight:700; color:var(--text-muted);">Template:</span>
+                        <button class="btn btn-sm btn-blue" onclick="applySheetPreset('ortho')">Outpatient Ortho Foundation</button>
+                        <button class="btn btn-sm btn-teal" onclick="applySheetPreset('hh')">Home Health Mobility & Safety</button>
+                    </div>
+                    <div class="toggles-row">
+                        <label><input type="checkbox" id="toggleEdu" checked onchange="toggleSection('eduSection', this.checked)"> Intro Cards</label>
+                        <label><input type="checkbox" id="toggleWhyWorks" checked onchange="toggleSection('whyWorksSection', this.checked)"> "Why This Works"</label>
+                        <label><input type="checkbox" id="togglePreset" checked onchange="toggleSection('presetSection', this.checked)"> Bottom Habit Banner</label>
+                        <button class="btn btn-danger btn-sm" onclick="clearCurrentProgram()">Clear Sheet</button>
+                    </div>
+                </div>
+
+                <!-- Portrait-Optimized Printable Handout -->
+                <div class="hep-sheet">
+                    <div class="sheet-banner">
+                        <input type="text" class="banner-title" id="bannerTitle" value="Your Recovery Foundation">
+                        <input type="text" class="banner-sub" id="bannerSub" value='Moving from "False Alarms" to Functional Stability'>
+                    </div>
+
+                    <div class="patient-meta">
+                        <div class="meta-box">
+                            <strong>Name:</strong>
+                            <input type="text" id="patientName" placeholder="Enter patient name...">
+                        </div>
+                        <div class="meta-box">
+                            <strong>Date:</strong>
+                            <input type="date" id="programDate">
+                        </div>
+                        <div class="meta-box">
+                            <strong>Clinical Focus:</strong>
+                            <input type="text" id="programFocus" placeholder="e.g., Stability & Safe Mobility">
+                        </div>
+                    </div>
+
+                    <div id="eduSection">
+                        <div class="edu-grid">
+                            <div class="edu-card">
+                                <input type="text" id="edu1Title" value='1. The "Car Alarm" Logic'>
+                                <textarea id="edu1Text" oninput="autoResizeTextarea(this)">Pain is often a safety signal, not a damage report. Stress, poor sleep, or past injury can make your nervous system hyper-sensitive—like a car alarm that goes off when a pinecone falls on the roof.</textarea>
+                            </div>
+                            <div class="edu-card">
+                                <input type="text" id="edu2Title" value="2. Foundation vs. Drywall">
+                                <textarea id="edu2Text" oninput="autoResizeTextarea(this)">We don't just "patch cracks" in the drywall (symptoms). We address the foundation (spinal & proximal stability). When the foundation is solid, the repairs to your joints finally last.</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-heading">3. Your Targeted Reset & Stability Routine</div>
+                    <div class="hep-list" id="hepList">
+                        <div class="empty-state" id="emptyState">
+                            <h4>Your Patient Sheet is Empty</h4>
+                            <p style="font-size:0.84rem; margin-top:0.25rem;">Click "+ Add" on any exercise in the left library, or use the 🧠 AI Co-Pilot on the right to generate custom exercises.</p>
+                        </div>
+                    </div>
+
+                    <div id="whyWorksSection" class="why-works-box">
+                        <textarea id="whyWorksText" oninput="autoResizeTextarea(this)">Why this works: These drills restore Feed-Forward Activation. We are teaching your body to stabilize 2 seconds BEFORE it moves, ensuring the protective car alarm stays off.</textarea>
+                    </div>
+
+                    <div id="presetSection" class="preset-footer">
+                        <div class="section-heading">4. Your Daily "Pre-Set" Habit</div>
+                        <p style="font-size:0.82rem; margin-bottom:0.4rem;">Exercises done once a day aren't enough. Bridge the gap during the transitional moments that normally challenge you.</p>
+                        <div class="preset-banner">
+                            <input type="text" id="presetBannerText" value="LIGHTLY ENGAGE FOUNDATION 2 SECONDS BEFORE MOVING">
+                        </div>
+                        <input type="text" class="preset-sub" id="presetSubText" value="Practice during: Sit-to-Stand • Rolling in Bed • Reaching Overhead • Bending Over • Stepping / Curbs">
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ==================== VIEW 2: CLINICAL & FUNCTIONAL RESOURCE HUB ==================== -->
+        <div class="view-panel" id="viewHub">
+            <div class="resource-hub">
+                <div class="hub-container">
+                    <div>
+                        <h2 style="color:var(--navy);">Functional Outcome Calculators & Orthopedic Reference Hub</h2>
+                        <p style="font-size:0.85rem; color:var(--text-muted);">Instant normative calculators for Home Health / Outpatient documentation and regional interdependence clinical pearls.</p>
+                    </div>
+
+                    <div class="hub-grid">
+                        <div class="hub-card">
+                            <h3>🪑 30-Second Chair Stand (CDC Fall Risk)</h3>
+                            <div class="calc-row">
+                                <label>Age Bracket:</label>
+                                <select id="csAge" onchange="calcChairStand()">
+                                    <option value="60-64">60 - 64 years</option>
+                                    <option value="65-69">65 - 69 years</option>
+                                    <option value="70-74">70 - 74 years</option>
+                                    <option value="75-79">75 - 79 years</option>
+                                    <option value="80-84">80 - 84 years</option>
+                                    <option value="85-89">85 - 89 years</option>
+                                    <option value="90-94">90 - 94 years</option>
+                                </select>
+                            </div>
+                            <div class="calc-row">
+                                <label>Biological Sex:</label>
+                                <select id="csSex" onchange="calcChairStand()">
+                                    <option value="M">Male</option>
+                                    <option value="F">Female</option>
+                                </select>
+                            </div>
+                            <div class="calc-row">
+                                <label>Completed Reps (no arms):</label>
+                                <input type="number" id="csReps" value="11" min="0" max="40" oninput="calcChairStand()">
+                            </div>
+                            <div class="calc-output" id="csResult"></div>
+                        </div>
+
+                        <div class="hub-card">
+                            <h3>🚶‍♂️ Gait Speed ("6th Vital Sign") Calculator</h3>
+                            <div class="calc-row">
+                                <label>Measured Distance:</label>
+                                <select id="gsDist" onchange="calcGaitSpeed()">
+                                    <option value="10">10 Meters (32.8 ft)</option>
+                                    <option value="6">6 Meters (19.7 ft)</option>
+                                    <option value="4">4 Meters (13.1 ft)</option>
+                                    <option value="4.572">15 Feet (Home Health std)</option>
+                                    <option value="6.096">20 Feet (Home Health std)</option>
+                                </select>
+                            </div>
+                            <div class="calc-row">
+                                <label>Time (Seconds):</label>
+                                <input type="number" id="gsTime" value="5.2" step="0.1" min="1" oninput="calcGaitSpeed()">
+                            </div>
+                            <div class="calc-output" id="gsResult"></div>
+                        </div>
+
+                        <div class="hub-card">
+                            <h3>⏱️ TUG & 5x Sit-to-Stand Interpreter</h3>
+                            <div class="calc-row">
+                                <label>TUG Time (Seconds):</label>
+                                <input type="number" id="tugTime" value="11.5" step="0.1" oninput="calcTug5x()">
+                            </div>
+                            <div class="calc-row">
+                                <label>5x Sit-to-Stand (Seconds):</label>
+                                <input type="number" id="ftsTime" value="14.2" step="0.1" oninput="calcTug5x()">
+                            </div>
+                            <div class="calc-output" id="tugResult"></div>
+                        </div>
+                    </div>
+
+                    <div class="hub-grid">
+                        <div class="hub-card">
+                            <h3>🔗 Regional Interdependence & Feed-Forward Drivers</h3>
+                            <table class="ref-table">
+                                <thead>
+                                    <tr>
+                                        <th>Primary Presentation</th>
+                                        <th>Hidden Proximal / Neuro Driver</th>
+                                        <th>Key Clinical Reset / Check</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Shoulder Impingement / Painful Arc</strong></td>
+                                        <td>Lower cervical instability & poor scapular upward rotation</td>
+                                        <td>Oculomotor Eye Turns + Chin Tuck + Serratus Wall Slide; re-test overhead reach</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Chronic Hip Flexor (Psoas) Tightness</strong></td>
+                                        <td>Inhibited TrA / Pelvic Floor / Multifidus (Psoas gripping as secondary stabilizer)</td>
+                                        <td>Pelvic Floor 20% "On-Switch" + Sidelying Multifidus Stack; re-test Thomas Test / SLR</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Patellofemoral / Medial Knee Pain</strong></td>
+                                        <td>Contralateral pelvic drop (Glute Medius) or loss of ankle dorsiflexion</td>
+                                        <td>Pre-set pelvic floor + Stacked Clamshell / Lateral Step-down with hip hinge</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Transitional Low Back Catching</strong></td>
+                                        <td>Delayed feed-forward timing (>50ms delay in TrA/Multifidus)</td>
+                                        <td>2-Second Pre-Set Habit prior to Sit-to-Stand, rolling in bed, or anterior flexion</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="hub-card">
+                            <h3>🧠 Nerve Root Quick Screen (Cervical & Lumbar)</h3>
+                            <table class="ref-table">
+                                <thead>
+                                    <tr>
+                                        <th>Root</th>
+                                        <th>Myotome</th>
+                                        <th>Dermatome</th>
+                                        <th>Reflex</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td><strong>C5</strong></td><td>Shoulder Abduction / Deltoid</td><td>Lateral upper arm</td><td>Biceps</td></tr>
+                                    <tr><td><strong>C6</strong></td><td>Elbow Flexion / Wrist Extension</td><td>Radial forearm, thumb & index</td><td>Brachioradialis</td></tr>
+                                    <tr><td><strong>C7</strong></td><td>Elbow Extension / Wrist Flexion</td><td>Middle finger</td><td>Triceps</td></tr>
+                                    <tr><td><strong>C8 / T1</strong></td><td>Thumb Ext (C8) / Finger Abd (T1)</td><td>Ulnar digits / Medial forearm</td><td>—</td></tr>
+                                    <tr><td><strong>L4</strong></td><td>Ankle Dorsiflexion (Tib Ant)</td><td>Medial malleolus / medial shin</td><td>Patellar</td></tr>
+                                    <tr><td><strong>L5</strong></td><td>Great Toe Ext (EHL) / Hip Abd</td><td>Dorsum of foot / 1st web space</td><td>Medial Hamstring</td></tr>
+                                    <tr><td><strong>S1</strong></td><td>Ankle Plantarflexion / Eversion</td><td>Lateral foot / plantar heel</td><td>Achilles</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SLIDE-OUT AI CO-PILOT DRAWER ==================== -->
+        <aside class="ai-drawer no-print" id="aiDrawer">
+            <div class="ai-drawer-header">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <strong>🧠 Elite PT AI Co-Pilot</strong>
+                    <span style="font-size:0.68rem; background:rgba(255,255,255,0.2); padding:0.1rem 0.4rem; border-radius:4px;">OCS / FAAOMPT / HH</span>
+                </div>
+                <button class="btn btn-sm btn-outline" onclick="toggleAiDrawer()">✕</button>
+            </div>
+
+            <div class="ai-mode-tabs">
+                <button class="ai-mode-btn active" id="modeBtnHep" onclick="switchAiMode('hep')">⚡ @HEP Generator</button>
+                <button class="ai-mode-btn" id="modeBtnChat" onclick="switchAiMode('chat')">🩺 Clinical Sounding Board</button>
+            </div>
+
+            <!-- AI MODE 1: @HEP GENERATOR -->
+            <div class="ai-pane active" id="aiPaneHep">
+                <div>
+                    <label style="font-size:0.75rem; font-weight:700; color:var(--navy);">Clinical Shorthand / Exercise Focus:</label>
+                    <textarea id="hepPromptInput" rows="3" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:5px; font-size:0.82rem; margin-top:0.25rem;" placeholder="e.g., eccentric RDL with dowel to offload lumbar spine and keep car alarm off when lifting groceries"></textarea>
+                </div>
+
+                <div class="quick-prompts">
+                    <span class="chip" onclick="fillHepChip('Deep core feed-forward activation 2 seconds before sit-to-stand and rolling in bed')">Deep Core Pre-Set</span>
+                    <span class="chip" onclick="fillHepChip('Serratus wall slides with chin tuck to unlock subacromial space for overhead reach')">Serratus Wall Slide</span>
+                    <span class="chip" onclick="fillHepChip('Home health kitchen counter tandem balance and weight shifts for fall prevention')">HH Counter Balance</span>
+                </div>
+
+                <details style="background:var(--card-bg); border:1px solid var(--border); border-radius:5px; padding:0.5rem;">
+                    <summary style="font-size:0.76rem; font-weight:700; color:var(--navy); cursor:pointer;">🎓 Train AI Voice & Rules (Click to Customize)</summary>
+                    <div style="margin-top:0.45rem; display:flex; flex-direction:column; gap:0.4rem;">
+                        <textarea id="aiTrainingRules" rows="4" onchange="saveAiTraining(this.value)" style="width:100%; font-size:0.76rem; padding:0.4rem; border:1px solid var(--border); border-radius:4px;"></textarea>
+                        <label style="font-size:0.72rem; display:flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                            <input type="checkbox" id="learnFromLibraryToggle" checked>
+                            Auto-train from my saved Exercise Library examples
+                        </label>
+                    </div>
+                </details>
+
+                <div style="display:flex; gap:0.4rem;">
+                    <button class="btn btn-blue" style="flex:1; justify-content:center;" onclick="generateHepExercise()">⚡ Generate Exercise</button>
+                    <button class="btn btn-sm" style="background:#e2e8f0; color:var(--navy);" onclick="copyHepPromptToClipboard()" title="Copy prompt if you don't use an API key">📋 Copy Prompt</button>
+                </div>
+
+                <div id="hepAiResultBox" style="display:none; flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:0.75rem; background:var(--card-bg); font-size:0.82rem; line-height:1.45;">
+                    <div id="hepAiOutputText"></div>
+                    <button class="btn btn-success btn-sm" id="addAiExBtn" style="width:100%; justify-content:center; margin-top:0.65rem; display:none;" onclick="addAiExerciseToSheet()">+ Add to Patient Sheet</button>
+                </div>
+            </div>
+
+            <!-- AI MODE 2: CLINICAL SOUNDING BOARD -->
+            <div class="ai-pane" id="aiPaneChat">
+                <div class="quick-prompts">
+                    <span class="chip" onclick="sendQuickClinicalQuestion('Help me differentiate lumbar radiculopathy vs deep gluteal syndrome / piriformis vs hip OA in a patient with posterior hip pain.')">Diff Dx: Posterior Hip</span>
+                    <span class="chip" onclick="sendQuickClinicalQuestion('Give me a regional interdependence progression for a patient with right shoulder impingement and stiff C5-T4.')">Regional: Shoulder/C-Spine</span>
+                    <span class="chip" onclick="sendQuickClinicalQuestion('Patient scored 8 reps on 30-sec chair stand and 16s on TUG in Home Health. Give me a 3-week progression and skilled documentation rationale.')">HH Fall Risk Plan</span>
+                </div>
+
+                <div class="chat-history" id="clinicalChatHistory">
+                    <div class="chat-bubble chat-ai"><strong>🩺 Elite PT Sounding Board Ready.</strong>
+Ask me anything about:
+• Differential Diagnosis & Red Flags
+• Regional Interdependence & Neuro Resets
+• Manual Therapy + Exercise Progressions
+• Home Health Modifications & Skilled Rationale</div>
+                </div>
+
+                <div style="display:flex; gap:0.4rem;">
+                    <textarea id="clinicalChatInput" rows="2" style="flex:1; padding:0.5rem; border:1px solid var(--border); border-radius:5px; font-size:0.82rem;" placeholder="Ask a clinical question or paste a case presentation..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendClinicalChat();}"></textarea>
+                    <button class="btn btn-teal" onclick="sendClinicalChat()">Send</button>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <button class="btn btn-sm" style="background:#e2e8f0; color:var(--text-dark);" onclick="clearClinicalChat()">Clear Chat</button>
+                    <button class="btn btn-sm" style="background:#e2e8f0; color:var(--navy);" onclick="copyClinicalPromptToClipboard()">📋 Copy Question w/ Persona</button>
+                </div>
+            </div>
+
+            <!-- Pre-Loaded API Key & Auto-Model Engine Footer -->
+            <div class="ai-settings-bar">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted);">🔑 API Key / Token (Pre-Loaded):</label>
+                    <span id="apiStatusLabel" style="font-size:0.68rem; color:var(--teal); font-weight:700;">Auto-Detect Ready</span>
+                </div>
+                <div style="display:flex; gap:0.35rem;">
+                    <input type="text" id="geminiApiKey" value="AQ.Ab8RN6JGNQxxKCKKCV_eoJHzjcug1g2RLxjip1V7p87AehUXOw" onchange="saveApiKey(this.value)" style="flex:1; padding:0.32rem 0.5rem; border:1px solid var(--border); border-radius:4px; font-size:0.75rem;">
+                    <button class="btn btn-sm btn-blue" onclick="testAndDetectModel()">🔍 Test Key</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="toast">Saved!</div>
+
+    <script>
+        document.getElementById('programDate').valueAsDate = new Date();
+        const PRELOADED_KEY = "AQ.Ab8RN6JGNQxxKCKKCV_eoJHzjcug1g2RLxjip1V7p87AehUXOw";
+        let activeGeminiModel = "gemini-2.5-flash";
+
+        // Auto-expand textareas so nothing is ever cut off with a scrollbar
+        function autoResizeTextarea(el) {
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight + 2) + 'px';
+        }
+
+        function resizeAllSheetTextareas() {
+            document.querySelectorAll('.hep-sheet textarea').forEach(el => autoResizeTextarea(el));
+        }
+
+        function prepareAndPrint() {
+            resizeAllSheetTextareas();
+            window.print();
+        }
+
+        const defaultExercises = [
+            {
+                id: 101,
+                name: "Eye Turns (Cervical / Shoulder Reset)",
+                category: "Neurological Reset",
+                sets: "1-2",
+                reps: "10",
+                hold: "2 sec",
+                freq: "Pre-Activity / Flare-ups",
+                resistance: "Eyes Only",
+                why: "Hardwired to your deep neck stabilizers. Moving your eyes while keeping your head still 'wakes up' the foundation of your neck and releases the protective 'brake' on your shoulder.",
+                how: "1. Sit or stand tall looking straight ahead. Keep your head perfectly still.\n2. Turn ONLY your eyes as far as possible in the direction of your tight/painful side.\n3. Repeat 10 times without moving your head, then immediately re-test your overhead reach or neck turn."
+            },
+            {
+                id: 102,
+                name: "The Pelvic Floor 'On-Switch' (Gentle Kegel)",
+                category: "Neurological Reset",
+                sets: "2",
+                reps: "10",
+                hold: "5 sec",
+                freq: "Daily + Pre-Set",
+                resistance: "20% Effort",
+                why: "The 'on-switch' for your deep core. Activating the pelvic floor tells the brain the spine is safe, allowing overactive emergency muscles (like the Psoas) to stand down so your hips move freely.",
+                how: "Exhale gently and perform a light 20% lift of your pelvic floor without squeezing your glutes, bracing your abs hard, or holding your breath. Hold 5 seconds while breathing normally, then fully relax."
+            },
+            {
+                id: 103,
+                name: "The Multifidus 'Stack' (Sidelying Reset)",
+                category: "Neurological Reset",
+                sets: "2",
+                reps: "8 / side",
+                hold: "5 sec",
+                freq: "Daily",
+                resistance: "Bodyweight",
+                why: "Combining Tongue to Palate, Eyes to Ceiling, and Toe to Ceiling in sidelying creates a massive stability signal that wakes up the deep muscles shielding your spine (Multifidus).",
+                how: "Lie on your side with knees bent. Gently press your tongue to the roof of your mouth, look up toward the ceiling with your eyes, and lightly rotate your top toe toward the ceiling. Hold 5 seconds while feeling the deep low back muscles engage."
+            },
+            {
+                id: 104,
+                name: "The 2-Second Transitional 'Pre-Set'",
+                category: "Deep Core & Lumbar",
+                sets: "All Day",
+                reps: "Every Transition",
+                hold: "During Move",
+                freq: "Throughout Day",
+                resistance: "20% Pre-Set",
+                why: "Restores Feed-Forward Activation. Teaching your body to lightly stabilize 2 seconds BEFORE you move keeps the lumbar 'car alarm' turned off during daily movements.",
+                how: "2 seconds before standing up from a chair, rolling in bed, bending over, or lifting: gently engage your pelvic floor 'on-switch' and tongue-to-palate. Maintain light engagement through the transition while breathing normally."
+            },
+            {
+                id: 105,
+                name: "Supine 90/90 Deep Core Marches",
+                category: "Deep Core & Lumbar",
+                sets: "2-3",
+                reps: "10 / side",
+                hold: "2 sec",
+                freq: "Daily",
+                resistance: "Bodyweight",
+                why: "Trains your deep core foundation to hold the pelvis and lumbar spine rock-steady while your hips move independently.",
+                how: "Lie on your back with knees bent. Flip your deep core 'on-switch' (light pelvic floor lift + ribs softly anchored). Slowly float one foot 2 inches off the surface without letting your pelvis rock or back arch."
+            },
+            {
+                id: 106,
+                name: "Deadbug (Foundation Progression)",
+                category: "Deep Core & Lumbar",
+                sets: "3",
+                reps: "8 / side",
+                hold: "2 sec",
+                freq: "Daily",
+                resistance: "Bodyweight",
+                why: "Challenges your spinal foundation while both your arms and legs move away from center, locking in dynamic stability.",
+                how: "Lie on your back with arms reaching to the ceiling and knees in 90/90 tabletop. Pre-set your pelvic floor. Slowly reach opposite arm overhead and extend opposite leg only as far as you can maintain a quiet, stable spine."
+            },
+            {
+                id: 107,
+                name: "Hip Hinge / Dowel RDL (Lumbar Offloading)",
+                category: "Deep Core & Lumbar",
+                sets: "3",
+                reps: "10",
+                hold: "2 sec",
+                freq: "Daily",
+                resistance: "Bodyweight / Dowel",
+                why: "Teaches your powerful hips and glutes to do the heavy lifting so your lower back doesn't have to act like a crane.",
+                how: "Stand tall with a soft bend in your knees. Pre-set your pelvic floor 2 seconds before moving, then push your hips straight back toward the wall behind you while keeping your spine long. Squeeze glutes to return to standing."
+            },
+            {
+                id: 108,
+                name: "Deep Cervical Flexor Chin Tuck",
+                category: "Cervical & Shoulder",
+                sets: "2",
+                reps: "10",
+                hold: "5 sec",
+                freq: "2x/day",
+                resistance: "Gentle Nod",
+                why: "Wakes up the deep stabilizing muscles in the front of your neck so superficial upper trap and levator muscles can stop over-gripping.",
+                how: "Sit or lie tall with tongue gently on the roof of your mouth. Glide your chin straight back (like making a subtle double chin) without tilting your head up or down. Breathe smoothly."
+            },
+            {
+                id: 109,
+                name: "Serratus Anterior Wall Slides",
+                category: "Cervical & Shoulder",
+                sets: "3",
+                reps: "10",
+                hold: "2 sec",
+                freq: "Daily",
+                resistance: "Light Band / Towel",
+                why: "Trains your shoulder blade to rotate upward smoothly, creating generous clearance for your rotator cuff when reaching overhead.",
+                how: "Stand facing a wall with forearms resting vertically on the wall. Lightly press forearms into the wall to spread your shoulder blades, then slide arms upward while keeping your neck and upper traps relaxed."
+            },
+            {
+                id: 110,
+                name: "Glute Bridge with Pelvic Floor Pre-Set",
+                category: "Hip, Knee & Ankle",
+                sets: "3",
+                reps: "12",
+                hold: "3 sec",
+                freq: "Daily",
+                resistance: "Bodyweight / Band",
+                why: "Re-connects your glutes as the primary engine for hip extension while shielding your lower back.",
+                how: "Lie on your back with knees bent. Engage your pelvic floor 2 seconds before moving, then press through your heels to lift your hips until knees, hips, and shoulders align. Lower slowly."
+            },
+            {
+                id: 111,
+                name: "Controlled Lateral Step-Down (Eccentric Quad/Glute)",
+                category: "Hip, Knee & Ankle",
+                sets: "3",
+                reps: "8 / side",
+                hold: "3 sec lower",
+                freq: "Daily",
+                resistance: "4-6 inch step",
+                why: "Builds eccentric shock absorption in your quad and lateral hip so your knee tracks smoothly on stairs and slopes.",
+                how: "Stand on a low step. Hinge slightly at the hips, keep your kneecap aligned with your 2nd toe, and take 3 full seconds to lightly tap your opposite heel to the floor before pressing back up."
+            },
+            {
+                id: 112,
+                name: "Sit-to-Stand Transfer with 2-Second Pre-Set",
+                category: "Home Health & Fall Prevention",
+                sets: "3",
+                reps: "8-10",
+                hold: "Control lower",
+                freq: "2x/day",
+                resistance: "Chair Height",
+                why: "Builds lower body power for safe, independent transfers while training your nervous system to stabilize before standing.",
+                how: "1. Scoot forward to the front third of your chair and bring feet slightly back under your knees.\n2. Engage your pelvic floor 2 seconds before moving.\n3. Lean nose over toes and press firmly through your heels to stand tall. Take 3 seconds to sit back down without plopping."
+            },
+            {
+                id: 113,
+                name: "Kitchen Counter Weight Shifts & Tandem Balance",
+                category: "Home Health & Fall Prevention",
+                sets: "2",
+                reps: "3 bouts",
+                hold: "30 sec",
+                freq: "Daily",
+                resistance: "Counter Support Ready",
+                why: "Sharpens ankle, hip, and vestibular balance reactions so you stay steady when turning corners or walking on uneven surfaces.",
+                how: "Stand facing a sturdy kitchen counter with fingertips hovering lightly above the surface for safety. Place one foot partly or directly in front of the other (heel-to-toe). Stand tall, fix your gaze ahead, and hold 30 seconds per side."
+            },
+            {
+                id: 114,
+                name: "Supported Heel & Toe Raises (Ankle Strategy)",
+                category: "Home Health & Fall Prevention",
+                sets: "2",
+                reps: "12 each",
+                hold: "2 sec",
+                freq: "Daily",
+                resistance: "Counter Support",
+                why: "Strengthens calves and shin muscles to prevent toe-catching trips and improve ankle recovery if you hit a bump.",
+                how: "Holding lightly onto a sturdy counter, rise up onto the balls of your feet for 2 seconds, lower slowly, then lift your toes up toward the ceiling to fire your shin muscles."
+            }
+        ];
+
+        const defaultAiRules = `- Use relatable, threat-reducing metaphors ("the 'on-switch' for your deep core", "telling the brain the spine is safe", "keeping the car alarm off").
+- Frame exercises around building a solid foundation and feed-forward activation (stabilizing 2 seconds BEFORE moving).
+- Avoid scary medical jargon; keep sentences punchy, empowering, and easy for both Outpatient Ortho and Home Health patients to follow.`;
+
+        let exerciseLibrary = [];
+        let currentProgram = [];
+        let lastAiGenerated = null;
+        let clinicalChatMessages = [];
+
+        function initApp() {
+            const savedLib = localStorage.getItem('pt_suite_library_v2');
+            if (savedLib) {
+                exerciseLibrary = JSON.parse(savedLib);
+            } else {
+                exerciseLibrary = JSON.parse(JSON.stringify(defaultExercises));
+                saveLibraryToLocal();
+            }
+
+            const savedKey = localStorage.getItem('hep_gemini_api_key');
+            document.getElementById('geminiApiKey').value = savedKey || PRELOADED_KEY;
+
+            const savedRules = localStorage.getItem('hep_ai_training_rules');
+            document.getElementById('aiTrainingRules').value = savedRules || defaultAiRules;
+
+            renderLibrary(exerciseLibrary);
+            renderProgram();
+            calcChairStand();
+            calcGaitSpeed();
+            calcTug5x();
+            setTimeout(resizeAllSheetTextareas, 50);
+        }
+
+        function saveLibraryToLocal() {
+            localStorage.setItem('pt_suite_library_v2', JSON.stringify(exerciseLibrary));
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2600);
+        }
+
+        function switchMainView(view) {
+            document.getElementById('viewHep').classList.toggle('active', view === 'hep');
+            document.getElementById('viewHub').classList.toggle('active', view === 'hub');
+            document.getElementById('tabBtnHep').classList.toggle('active', view === 'hep');
+            document.getElementById('tabBtnHub').classList.toggle('active', view === 'hub');
+        }
+
+        function applySheetPreset(mode) {
+            if (mode === 'ortho') {
+                document.getElementById('bannerTitle').value = 'Your Recovery Foundation';
+                document.getElementById('bannerSub').value = 'Moving from "False Alarms" to Functional Stability';
+                document.getElementById('edu1Title').value = '1. The "Car Alarm" Logic';
+                document.getElementById('edu1Text').value = 'Pain is often a safety signal, not a damage report. Stress, poor sleep, or past injury can make your nervous system hyper-sensitive—like a car alarm that goes off when a pinecone falls on the roof.';
+                document.getElementById('edu2Title').value = '2. Foundation vs. Drywall';
+                document.getElementById('edu2Text').value = 'We don\'t just "patch cracks" in the drywall (symptoms). We address the foundation (spinal & proximal stability). When the foundation is solid, the repairs to your joints finally last.';
+                document.getElementById('whyWorksText').value = 'Why this works: These drills restore Feed-Forward Activation. We are teaching your body to stabilize 2 seconds BEFORE it moves, ensuring the protective car alarm stays off.';
+                document.getElementById('presetBannerText').value = 'LIGHTLY ENGAGE FOUNDATION 2 SECONDS BEFORE MOVING';
+                document.getElementById('presetSubText').value = 'Practice during: Sit-to-Stand • Rolling in Bed • Reaching Overhead • Bending Over • Lifting';
+            } else {
+                document.getElementById('bannerTitle').value = 'Your Home Mobility & Balance Foundation';
+                document.getElementById('bannerSub').value = 'Building Confidence, Steady Balance, and Safe Daily Transitions';
+                document.getElementById('edu1Title').value = '1. Confidence Before Speed';
+                document.getElementById('edu1Text').value = 'Safe movement starts with preparation. Taking 2 seconds to set your posture and foundation before standing or turning gives your brain and balance system time to lock in.';
+                document.getElementById('edu2Title').value = '2. Home Safety Keys';
+                document.getElementById('edu2Text').value = 'Always perform standing exercises near a sturdy counter or heavy chair. Keep pathways clear of throw rugs, wear supportive footwear, and pause for 3 seconds after standing if you ever feel lightheaded.';
+                document.getElementById('whyWorksText').value = 'Why this works: Consistent daily practice strengthens your legs and wakes up the balance sensors in your feet, hips, and neck—reducing fall risk during everyday routines.';
+                document.getElementById('presetBannerText').value = 'PAUSE, SET YOUR FEET & ENGAGE CORE 2 SECONDS BEFORE STANDING';
+                document.getElementById('presetSubText').value = 'Practice during: Getting Out of Bed • Standing from Chair/Toilet • Turning in Kitchen • Stepping Over Thresholds';
+            }
+            resizeAllSheetTextareas();
+            showToast("Template updated!");
+        }
+
+        function renderLibrary(list) {
+            const container = document.getElementById('libraryList');
+            container.innerHTML = '';
+            list.forEach(ex => {
+                const isHH = ex.category.includes('Home Health');
+                const div = document.createElement('div');
+                div.className = 'lib-card';
+                div.innerHTML = `
+                    <div class="lib-card-header">
+                        <h4>${ex.name}</h4>
+                        <button class="btn btn-blue btn-sm" onclick="addExerciseToProgram(${ex.id})">+ Add</button>
+                    </div>
+                    <span class="tag ${isHH ? 'tag-hh' : 'tag-ortho'}">${ex.category}</span>
+                    <p><strong>Why:</strong> ${ex.why}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function filterLibrary() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('categorySelect').value;
+            const filtered = exerciseLibrary.filter(ex => {
+                const matchText = ex.name.toLowerCase().includes(q) || ex.why.toLowerCase().includes(q) || ex.how.toLowerCase().includes(q);
+                const matchCat = cat === 'All' || ex.category === cat;
+                return matchText && matchCat;
+            });
+            renderLibrary(filtered);
+        }
+
+        function addExerciseToProgram(id) {
+            const found = exerciseLibrary.find(e => e.id === id);
+            if (!found) return;
+            currentProgram.push({
+                ...JSON.parse(JSON.stringify(found)),
+                uid: Date.now() + Math.random()
+            });
+            renderProgram();
+        }
+
+        function addBlankExercise() {
+            currentProgram.push({
+                uid: Date.now() + Math.random(),
+                id: Date.now(),
+                name: "Custom Exercise / Functional Drill",
+                category: "Deep Core & Lumbar",
+                sets: "2-3",
+                reps: "10",
+                hold: "3 sec",
+                freq: "Daily",
+                resistance: "Bodyweight",
+                why: "The 'on-switch' for your stability system. Signals safety to the brain so surrounding joints move freely.",
+                how: "1. Pre-set your foundation 2 seconds before moving.\n2. Move smoothly while breathing normally."
+            });
+            renderProgram();
+        }
+
+        function updateProgramItem(uid, field, val) {
+            const item = currentProgram.find(i => i.uid === uid);
+            if (item) item[field] = val;
+        }
+
+        function saveItemToLibrary(uid) {
+            const item = currentProgram.find(i => i.uid === uid);
+            if (!item) return;
+
+            const existingIndex = exerciseLibrary.findIndex(e => e.id === item.id || e.name.toLowerCase() === item.name.toLowerCase());
+            const cleanCopy = {
+                id: item.id || Date.now(),
+                name: item.name,
+                category: item.category || "Deep Core & Lumbar",
+                sets: item.sets,
+                reps: item.reps,
+                hold: item.hold,
+                freq: item.freq,
+                resistance: item.resistance,
+                why: item.why,
+                how: item.how
+            };
+
+            if (existingIndex >= 0) {
+                exerciseLibrary[existingIndex] = cleanCopy;
+            } else {
+                exerciseLibrary.unshift(cleanCopy);
+            }
+
+            saveLibraryToLocal();
+            filterLibrary();
+            showToast(`💾 "${item.name}" saved to your permanent library!`);
+        }
+
+        function removeProgramItem(uid) {
+            currentProgram = currentProgram.filter(i => i.uid !== uid);
+            renderProgram();
+        }
+
+        function clearCurrentProgram() {
+            if (confirm("Clear all exercises from the current patient sheet?")) {
+                currentProgram = [];
+                renderProgram();
+            }
+        }
+
+        function resetDefaultLibrary() {
+            if (confirm("Reset exercise library to factory defaults?")) {
+                exerciseLibrary = JSON.parse(JSON.stringify(defaultExercises));
+                saveLibraryToLocal();
+                filterLibrary();
+                showToast("Library restored to factory defaults.");
+            }
+        }
+
+        function renderProgram() {
+            const container = document.getElementById('hepList');
+            const empty = document.getElementById('emptyState');
+
+            if (currentProgram.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(empty);
+                empty.style.display = 'block';
+                return;
+            }
+
+            container.innerHTML = '';
+            currentProgram.forEach(ex => {
+                const card = document.createElement('div');
+                card.className = 'hep-item';
+                card.innerHTML = `
+                    <div class="hep-item-header">
+                        <input type="text" value="${ex.name}" onchange="updateProgramItem(${ex.uid}, 'name', this.value)">
+                        <div class="no-print" style="display:flex; gap:0.35rem; flex-shrink:0;">
+                            <button class="btn btn-sm" style="background:#eff6ff; color:#2563eb;" onclick="saveItemToLibrary(${ex.uid})" title="Save these exact parameters & descriptions as your new default">💾 Save to Library</button>
+                            <button class="btn btn-danger btn-sm" onclick="removeProgramItem(${ex.uid})">✕</button>
+                        </div>
+                    </div>
+                    <div class="why-callout">
+                        <label>The "Why" (Purpose & Target)</label>
+                        <textarea oninput="autoResizeTextarea(this); updateProgramItem(${ex.uid}, 'why', this.value)">${ex.why}</textarea>
+                    </div>
+                    <div class="params-grid">
+                        <div class="param-cell">
+                            <label>Sets</label>
+                            <input type="text" value="${ex.sets}" onchange="updateProgramItem(${ex.uid}, 'sets', this.value)">
+                        </div>
+                        <div class="param-cell">
+                            <label>Reps</label>
+                            <input type="text" value="${ex.reps}" onchange="updateProgramItem(${ex.uid}, 'reps', this.value)">
+                        </div>
+                        <div class="param-cell">
+                            <label>Hold</label>
+                            <input type="text" value="${ex.hold}" onchange="updateProgramItem(${ex.uid}, 'hold', this.value)">
+                        </div>
+                        <div class="param-cell">
+                            <label>Frequency</label>
+                            <input type="text" value="${ex.freq}" onchange="updateProgramItem(${ex.uid}, 'freq', this.value)">
+                        </div>
+                        <div class="param-cell">
+                            <label>Effort / Load</label>
+                            <input type="text" value="${ex.resistance}" onchange="updateProgramItem(${ex.uid}, 'resistance', this.value)">
+                        </div>
+                    </div>
+                    <div class="how-box">
+                        <label>How to Perform & Daily Integration</label>
+                        <textarea oninput="autoResizeTextarea(this); updateProgramItem(${ex.uid}, 'how', this.value)">${ex.how}</textarea>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            setTimeout(resizeAllSheetTextareas, 10);
+        }
+
+        function toggleSection(id, show) {
+            document.getElementById(id).style.display = show ? 'block' : 'none';
+        }
+
+        // ==================== FUNCTIONAL OUTCOME CALCULATORS ====================
+        function calcChairStand() {
+            const age = document.getElementById('csAge').value;
+            const sex = document.getElementById('csSex').value;
+            const reps = parseInt(document.getElementById('csReps').value) || 0;
+            const cutoffs = {
+                "60-64": { M: 14, F: 12 }, "65-69": { M: 12, F: 11 }, "70-74": { M: 12, F: 10 },
+                "75-79": { M: 11, F: 10 }, "80-84": { M: 10, F: 9 },  "85-89": { M: 8,  F: 8 }, "90-94": { M: 7, F: 4 }
+            };
+            const norm = cutoffs[age][sex];
+            const isRisk = reps < norm;
+            const box = document.getElementById('csResult');
+            box.style.borderLeftColor = isRisk ? 'var(--danger)' : 'var(--success)';
+            box.innerHTML = `
+                <strong>CDC Normative Cutoff (${sex === 'M' ? 'Male' : 'Female'}, ${age} yrs):</strong> ≥ ${norm} reps<br>
+                <strong>Status:</strong> <span style="color:${isRisk ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">
+                ${isRisk ? '⚠️ Below Average — Increased Fall Risk' : '✅ At or Above Age Norm'}</span><br>
+                <span style="font-size:0.76rem; color:var(--text-muted);">MCID (Hip/Knee OA & Older Adults): +2.0 to 2.6 reps</span>
+            `;
+        }
+
+        function calcGaitSpeed() {
+            const dist = parseFloat(document.getElementById('gsDist').value);
+            const time = parseFloat(document.getElementById('gsTime').value) || 1;
+            const mps = (dist / time).toFixed(2);
+            const fps = (mps * 3.28084).toFixed(2);
+            let cat = "", color = "var(--success)";
+            if (mps < 0.4) { cat = "Household Ambulator (<0.4 m/s) — High Fall & Hospitalization Risk"; color = "var(--danger)"; }
+            else if (mps < 0.8) { cat = "Limited Community Ambulator (0.4 – 0.8 m/s) — Intervention Indicated"; color = "var(--amber-border)"; }
+            else if (mps < 1.0) { cat = "Community Ambulator (0.8 – 1.0 m/s) — Monitor Crosswalk Safety"; color = "var(--blue)"; }
+            else { cat = "Full Community Ambulator (>1.0 m/s) — Normal / Lower Fall Risk"; color = "var(--success)"; }
+
+            const box = document.getElementById('gsResult');
+            box.style.borderLeftColor = color;
+            box.innerHTML = `
+                <strong>Speed:</strong> ${mps} m/s (${fps} ft/sec)<br>
+                <strong>Classification:</strong> <span style="color:${color}; font-weight:700;">${cat}</span><br>
+                <span style="font-size:0.76rem; color:var(--text-muted);">Crosswalk standard: ≥1.2 m/s | Meaningful Change (MCID): +0.10 m/s</span>
+            `;
+        }
+
+        function calcTug5x() {
+            const tug = parseFloat(document.getElementById('tugTime').value) || 0;
+            const fts = parseFloat(document.getElementById('ftsTime').value) || 0;
+            const tugRisk = tug >= 12.0;
+            const ftsRisk = fts >= 15.0;
+            document.getElementById('tugResult').innerHTML = `
+                <strong>TUG (${tug}s):</strong> <span style="color:${tugRisk ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">
+                ${tug >= 13.5 ? '⚠️ High Fall Risk (≥13.5s community / ≥12s CDC STEADI)' : (tugRisk ? '⚠️ Borderline Fall Risk (≥12.0s)' : '✅ Normal Mobility (<12s)')}</span><br>
+                <strong>5x Sit-to-Stand (${fts}s):</strong> <span style="color:${ftsRisk ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">
+                ${ftsRisk ? '⚠️ Recurrent Fall Risk (≥15.0s cutoff)' : '✅ Within Functional Threshold (<15.0s)'}</span>
+            `;
+        }
+
+        // ==================== CLOUD SYNC ====================
+        function exportCloudFile() {
+            const patientName = document.getElementById('patientName').value.trim() || 'Patient';
+            const dateStr = document.getElementById('programDate').value || 'Program';
+            const payload = {
+                version: 3,
+                savedAt: new Date().toISOString(),
+                sheetMeta: {
+                    bannerTitle: document.getElementById('bannerTitle').value,
+                    bannerSub: document.getElementById('bannerSub').value,
+                    patientName: document.getElementById('patientName').value,
+                    programDate: document.getElementById('programDate').value,
+                    programFocus: document.getElementById('programFocus').value,
+                    edu1Title: document.getElementById('edu1Title').value,
+                    edu1Text: document.getElementById('edu1Text').value,
+                    edu2Title: document.getElementById('edu2Title').value,
+                    edu2Text: document.getElementById('edu2Text').value,
+                    whyWorksText: document.getElementById('whyWorksText').value,
+                    presetBannerText: document.getElementById('presetBannerText').value,
+                    presetSubText: document.getElementById('presetSubText').value
+                },
+                aiTrainingRules: document.getElementById('aiTrainingRules').value,
+                currentProgram: currentProgram,
+                exerciseLibrary: exerciseLibrary
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PT_Suite_${patientName.replace(/\s+/g, '_')}_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("☁️ Saved! Store this file in your Google Drive or OneDrive folder.");
+        }
+
+        function importCloudFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.sheetMeta) {
+                        document.getElementById('bannerTitle').value = data.sheetMeta.bannerTitle || '';
+                        document.getElementById('bannerSub').value = data.sheetMeta.bannerSub || '';
+                        document.getElementById('patientName').value = data.sheetMeta.patientName || '';
+                        document.getElementById('programDate').value = data.sheetMeta.programDate || '';
+                        document.getElementById('programFocus').value = data.sheetMeta.programFocus || '';
+                        document.getElementById('edu1Title').value = data.sheetMeta.edu1Title || '';
+                        document.getElementById('edu1Text').value = data.sheetMeta.edu1Text || '';
+                        document.getElementById('edu2Title').value = data.sheetMeta.edu2Title || '';
+                        document.getElementById('edu2Text').value = data.sheetMeta.edu2Text || '';
+                        document.getElementById('whyWorksText').value = data.sheetMeta.whyWorksText || '';
+                        document.getElementById('presetBannerText').value = data.sheetMeta.presetBannerText || '';
+                        document.getElementById('presetSubText').value = data.sheetMeta.presetSubText || '';
+                    }
+                    if (data.aiTrainingRules) {
+                        document.getElementById('aiTrainingRules').value = data.aiTrainingRules;
+                        saveAiTraining(data.aiTrainingRules);
+                    }
+                    if (Array.isArray(data.currentProgram)) {
+                        currentProgram = data.currentProgram;
+                        renderProgram();
+                    }
+                    if (Array.isArray(data.exerciseLibrary)) {
+                        exerciseLibrary = data.exerciseLibrary;
+                        saveLibraryToLocal();
+                        filterLibrary();
+                    }
+                    resizeAllSheetTextareas();
+                    showToast("📂 Restored Patient HEP & Library from Cloud!");
+                } catch (err) {
+                    alert("Invalid JSON file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ==================== SMART GEMINI API ENGINE (SUPPORTS AIza & AQ. + AUTO-MODEL FALLBACK) ====================
+        function toggleAiDrawer() {
+            document.getElementById('aiDrawer').classList.toggle('collapsed');
+        }
+
+        function switchAiMode(mode) {
+            document.getElementById('aiPaneHep').classList.toggle('active', mode === 'hep');
+            document.getElementById('aiPaneChat').classList.toggle('active', mode === 'chat');
+            document.getElementById('modeBtnHep').classList.toggle('active', mode === 'hep');
+            document.getElementById('modeBtnChat').classList.toggle('active', mode === 'chat');
+        }
+
+        function saveApiKey(key) {
+            localStorage.setItem('hep_gemini_api_key', key.trim());
+            showToast("🔑 Key saved locally.");
+        }
+
+        function saveAiTraining(val) {
+            localStorage.setItem('hep_ai_training_rules', val);
+            showToast("🎓 AI Training Rules saved!");
+        }
+
+        function fillHepChip(text) {
+            document.getElementById('hepPromptInput').value = text;
+        }
+
+        // Universal Gemini caller that tries both ?key= and Bearer header, plus automatic model discovery
+        async function callGeminiSmart(payloadObj) {
+            const rawKey = document.getElementById('geminiApiKey').value.trim();
+            if (!rawKey) throw new Error("No API key entered.");
+
+            const candidateModels = [
+                activeGeminiModel,
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-pro-latest"
+            ].filter((v, i, a) => a.indexOf(v) === i);
+
+            let lastErrorMsg = "";
+
+            for (const modelName of candidateModels) {
+                // Attempt 1: Standard ?key= parameter
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(rawKey)}`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadObj)
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                        activeGeminiModel = modelName;
+                        document.getElementById('apiStatusLabel').textContent = `Connected (${modelName})`;
+                        document.getElementById('apiStatusLabel').style.color = 'var(--success)';
+                        return data.candidates[0].content.parts[0].text;
+                    }
+                    lastErrorMsg = data.error?.message || `HTTP ${res.status}`;
+                } catch (err) {
+                    lastErrorMsg = err.message;
+                }
+
+                // Attempt 2: If key starts with AQ. or ya29., try OAuth Bearer header
+                if (rawKey.startsWith("AQ.") || rawKey.startsWith("ya29.")) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${rawKey}`
+                            },
+                            body: JSON.stringify(payloadObj)
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                            activeGeminiModel = modelName;
+                            document.getElementById('apiStatusLabel').textContent = `Connected (${modelName})`;
+                            document.getElementById('apiStatusLabel').style.color = 'var(--success)';
+                            return data.candidates[0].content.parts[0].text;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            throw new Error(lastErrorMsg);
+        }
+
+        async function testAndDetectModel() {
+            const statusEl = document.getElementById('apiStatusLabel');
+            statusEl.textContent = "Testing...";
+            statusEl.style.color = "var(--blue)";
+            try {
+                await callGeminiSmart({
+                    contents: [{ parts: [{ text: "Reply with OK" }] }]
+                });
+                showToast(`✅ Connected using ${activeGeminiModel}!`);
+            } catch (err) {
+                statusEl.textContent = "Key Invalid/Expired";
+                statusEl.style.color = "var(--danger)";
+                alert(`Google API Diagnostic:\n"${err.message}"\n\nNote: Keys starting with "AQ." are temporary session tokens rather than permanent Gemini API keys. For a permanent free key, visit aistudio.google.com/app/apikey and copy the 39-character key starting with "AIzaSy...".`);
+            }
+        }
+
+        function buildHepPrompt(userNotes) {
+            const customRules = document.getElementById('aiTrainingRules').value || defaultAiRules;
+            const useExamples = document.getElementById('learnFromLibraryToggle').checked;
+
+            let examplesBlock = "";
+            if (useExamples && exerciseLibrary.length > 0) {
+                const topSamples = exerciseLibrary.slice(0, 4).map(ex =>
+                    `Title: "${ex.name}"\nWhy: "${ex.why}"\nHow: "${ex.how}"`
+                ).join("\n---\n");
+                examplesBlock = `\nHere are Gold-Standard Examples from my saved library. Mirror this tone, brevity, and clinical style:\n${topSamples}\n`;
+            }
+
+            return `You are an elite Outpatient Orthopedic & Home Health Physical Therapist assistant trained in my exact clinical voice.
+
+MY CLINICAL VOICE & RULES:
+${customRules}
+${examplesBlock}
+Translate the following clinical shorthand into a patient-friendly Home Exercise Program item.
+Return ONLY valid JSON with these exact keys:
+{
+  "name": "Clear Exercise Title",
+  "why": "1-2 punchy sentences explaining the purpose and target using a relatable safety/stability metaphor.",
+  "how": "2-3 actionable sentences explaining execution, breathing, and how to integrate it into daily positional transitions.",
+  "sets": "2-3",
+  "reps": "10",
+  "hold": "3-5 sec",
+  "freq": "Daily"
+}
+
+Clinical Input: ${userNotes}`;
+        }
+
+        async function generateHepExercise() {
+            const notes = document.getElementById('hepPromptInput').value.trim();
+            if (!notes) {
+                alert("Enter your exercise shorthand or focus first.");
+                return;
+            }
+
+            const resBox = document.getElementById('hepAiResultBox');
+            const outText = document.getElementById('hepAiOutputText');
+            const addBtn = document.getElementById('addAiExBtn');
+            resBox.style.display = 'block';
+            addBtn.style.display = 'none';
+            outText.innerHTML = "<em>⚡ Generating patient-friendly HEP card...</em>";
+
+            try {
+                const rawReply = await callGeminiSmart({
+                    contents: [{ parts: [{ text: buildHepPrompt(notes) }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                });
+                const cleaned = rawReply.replace(/```json|```/g, '').trim();
+                lastAiGenerated = JSON.parse(cleaned);
+
+                outText.innerHTML = `
+                    <strong style="color:var(--navy); font-size:0.9rem;">${lastAiGenerated.name}</strong><br><br>
+                    <strong>The "Why":</strong> ${lastAiGenerated.why}<br><br>
+                    <strong>How to Perform:</strong> ${lastAiGenerated.how}<br><br>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Default Params: ${lastAiGenerated.sets} sets × ${lastAiGenerated.reps} reps (${lastAiGenerated.hold})</span>
+                `;
+                addBtn.style.display = 'inline-flex';
+            } catch (e) {
+                outText.innerHTML = `<span style="color:var(--danger)"><strong>Google API Response:</strong> ${e.message}<br><br><em>Tip: If your "AQ." token expired, paste a standard "AIzaSy..." key from aistudio.google.com/app/apikey or click "📋 Copy Prompt".</em></span>`;
+            }
+        }
+
+        function addAiExerciseToSheet() {
+            if (!lastAiGenerated) return;
+            currentProgram.push({
+                uid: Date.now() + Math.random(),
+                id: Date.now(),
+                name: lastAiGenerated.name || "Targeted Stability Drill",
+                category: "Deep Core & Lumbar",
+                sets: lastAiGenerated.sets || "2-3",
+                reps: lastAiGenerated.reps || "10",
+                hold: lastAiGenerated.hold || "5 sec",
+                freq: lastAiGenerated.freq || "Daily",
+                resistance: "Light Pre-Set",
+                why: lastAiGenerated.why || "",
+                how: lastAiGenerated.how || ""
+            });
+            renderProgram();
+            showToast("✨ Added to patient sheet! Click '💾 Save to Library' on the card to keep it permanently.");
+        }
+
+        function copyHepPromptToClipboard() {
+            const notes = document.getElementById('hepPromptInput').value.trim() || "deep core activation with feed-forward timing";
+            navigator.clipboard.writeText(buildHepPrompt(notes));
+            showToast("📋 Full trained HEP prompt copied to clipboard!");
+        }
+
+        // ==================== MODE 2: ELITE CLINICAL SOUNDING BOARD ====================
+        const eliteClinicalSystemPersona = `You are an Elite Clinical Physical Therapy Consultant (Board-Certified Orthopedic Clinical Specialist [OCS], Fellowship-Trained Manual Physical Therapist [FAAOMPT], and Home Health Functional Rehabilitation Specialist).
+Your clinical philosophy integrates:
+1. Evidence-Based Orthopedic Manual Therapy, Regional Interdependence, and Biomechanics.
+2. Neuromuscular Feed-Forward Motor Control (e.g., deep cervical flexors, oculomotor-cervical coupling, transversus abdominis, pelvic floor, and lumbar multifidus co-activation prior to limb loading).
+3. Modern Pain Neuroscience Education ("Car Alarm" central/peripheral sensitization vs mechanical tissue loading).
+4. Practical Home Health & Outpatient functional adaptations, CDC STEADI fall-risk stratification, and defensible skilled documentation rationale.
+
+Provide structured, high-yield, clinician-to-clinician answers.`;
+
+        function sendQuickClinicalQuestion(q) {
+            document.getElementById('clinicalChatInput').value = q;
+            sendClinicalChat();
+        }
+
+        async function sendClinicalChat() {
+            const inputEl = document.getElementById('clinicalChatInput');
+            const question = inputEl.value.trim();
+            if (!question) return;
+
+            const historyEl = document.getElementById('clinicalChatHistory');
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble chat-user';
+            userBubble.textContent = question;
+            historyEl.appendChild(userBubble);
+            inputEl.value = '';
+            historyEl.scrollTop = historyEl.scrollHeight;
+
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'chat-bubble chat-ai';
+            aiBubble.innerHTML = "<em>🩺 Analyzing clinical presentation...</em>";
+            historyEl.appendChild(aiBubble);
+            historyEl.scrollTop = historyEl.scrollHeight;
+
+            clinicalChatMessages.push({ role: "user", parts: [{ text: question }] });
+
+            try {
+                const reply = await callGeminiSmart({
+                    systemInstruction: { parts: [{ text: eliteClinicalSystemPersona }] },
+                    contents: clinicalChatMessages
+                });
+                clinicalChatMessages.push({ role: "model", parts: [{ text: reply }] });
+                aiBubble.textContent = reply;
+                historyEl.scrollTop = historyEl.scrollHeight;
+            } catch (e) {
+                aiBubble.innerHTML = `<span style="color:var(--danger)"><strong>Google API Error:</strong> ${e.message}<br><em>If your AQ. token expired, paste a standard "AIza..." key below or click "📋 Copy Question w/ Persona".</em></span>`;
+            }
+        }
+
+        function clearClinicalChat() {
+            clinicalChatMessages = [];
+            document.getElementById('clinicalChatHistory').innerHTML = `
+                <div class="chat-bubble chat-ai"><strong>🩺 Chat Cleared.</strong> Ready for your next clinical case or differential question.</div>
+            `;
+        }
+
+        function copyClinicalPromptToClipboard() {
+            const q = document.getElementById('clinicalChatInput').value.trim() || "[Insert your clinical case or question here]";
+            const fullText = `${eliteClinicalSystemPersona}\n\nClinician Question / Case:\n${q}`;
+            navigator.clipboard.writeText(fullText);
+            showToast("📋 Clinical question + OCS/FAAOMPT persona copied!");
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
